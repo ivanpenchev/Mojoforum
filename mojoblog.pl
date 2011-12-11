@@ -13,6 +13,10 @@ helper db => sub {
 
 get '/' => sub {
 	my $self = shift;
+	my $result = $self->db->selectall_arrayref( q{
+			SELECT * FROM topics
+		}, { Slice => {} } );
+	$self->stash('topics', $result);
 	$self -> render;
 } => 'index';
 
@@ -35,12 +39,12 @@ get '/new' => 'newpost';
 post '/new' => sub {
 	my $self = shift;
 	my $post_title = $self->param('title');
-	my $post_content = $self->param('text');
 	my $post_author = $self->param('author');
 	my $date_published = DateTime->now;
 	$self->db-> do( qq{
-		INSERT INTO posts (title, author, content, published) VALUES ('$post_title', '$post_author', '$post_content', '$date_published')
+		INSERT INTO topics (title, author, published) VALUES ('$post_title', '$post_author', '$date_published')
 	}, undef, 'DONE') or die $self->db->errstr;
+	$self->redirect_to('/');
 };
 
 app->start;
@@ -54,12 +58,14 @@ __DATA__
 	<thead><tr><th class="header">Discussion</th> <th class="yellow">Posts</th> <th class="blue">Author</th> 
 		<th class="green">Published</th></tr></thead>
 	<tbody>
-		<tr> <td>All about the animals <span class="label success">New!</span></td> <td>33</td> <td>Ivan Penchev</td> <td>11/12/2011</td>
-		<tr> <td>Android Phones <span class="label important">Closed</span></td> <td>10</td> <td>Georgi Kostadinov</td> <td>07/10/2011</td>
+		% foreach my $topic (@$topics) {
+			<tr> <td><%= $topic->{title} %> <span class="label success">New!</span></td> <td><%= $topic->{posts} %></td> <td><%= $topic->{author} %></td> <td><%=$topic->{published} %></td>
+		% }
 	</tbody>
 </table>
+
 <div style="text-align: center">
-	<a href="#" class="btn large success"> New Topic</a>
+	<a href="/new" class="btn large success"> New Topic</a>
 </div>
 
 @@ installed.html.ep
@@ -83,12 +89,6 @@ __DATA__
 		<label>Your name:</label>
 		<div class="input">
 			<input type="text" name="author">
-		</div>
-	</div>
-	<div class="clearfix">
-		<label>Post content: </label>
-		<div class="input">
-			<textarea name="text"></textarea>
 		</div>
 	</div>
 	<div class="actions">
@@ -160,9 +160,9 @@ __DATA__
 				<div class="row">
 					<div class="span14">
 						<ul class="pills">
-							<li class="active"> <a href="#">Home</a> </li>
-							<li> <a href="#">Login</a> </li>
-							<li> <a href="#">Help</a> </li>
+							<li class="active"> <a href="/">Home</a> </li>
+							<li> <a href="/login">Login</a> </li>
+							<li> <a href="/help">Help</a> </li>
 						</ul>
 						<hr />
 						<%= content %>
