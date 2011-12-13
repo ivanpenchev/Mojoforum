@@ -5,7 +5,7 @@ use Mojo::Util qw/sha1_sum/;
 use DBI;
 
 my $ver = 0.1;
-my $dbfile = 'data/mojoblog.sqlite';
+my $dbfile = 'data/mojoforum.sqlite';
 my $conn = DBI->connect("dbi:SQLite:dbname=$dbfile", '', '');
 
 helper db => sub {
