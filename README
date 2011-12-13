@@ -1,4 +1,7 @@
-Simple forum app powered by Mojolicious framework.
+Simple forum app powered by Mojolicious framework and Bootstrap.
+
+Mojolicious Framework - http://mojolicio.us (https://github.com/kraih/mojo)
+Bootstrap - http://twitter.github.com/bootstrap/
 
 Developed by Ivan Penchev for Google Code-in Contest.
 
@@ -9,7 +12,10 @@ HOW-TO INSTALL:
 3. Download the Mojoforum application and run it through cmd or terminal:
 /path/to/mojoforum.pl daemon
 4. Open your browser and load the app's home page which will be http://127.0.0.1:3000/.
-If the database file is missing the app should be automatically installed.
+If the database file is missing the app should be automatically installed. 
+
+IMPORTANT: data directory should have write access permissions
+
 
 You can always extend the application's functionality. 
 For more information please read the Mojolicious documentation:
