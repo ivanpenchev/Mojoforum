@@ -13,6 +13,9 @@ helper db => sub {
 
 get '/' => sub {
 	my $self = shift;
+	if (-s $dbfile == 0) {
+		$self->redirect_to('/install');
+	}
 	my $result = $self->db->selectall_arrayref( q{
 			SELECT * FROM topics
 		}, { Slice => {} } );
@@ -31,21 +34,69 @@ get '/install' => sub {
 			published datetime not null
 		)
 	}, undef, 'DONE') or die $self->db->errstr;
+	$self->db->do( q{
+		CREATE TABLE IF NOT exists posts (
+			id integer primary key autoincrement not null,
+			title varchar not null,
+			author varchar not null,
+			content text not null,
+			topic_id integer not null,
+			published datetime not null
+		)
+	}, undef, 'DONE') or die $self->db->errstr;
 	$self->render;
 } => 'installed';
 
-get '/new' => 'newpost';
+get '/new/topic' => 'newtopic';
 
-post '/new' => sub {
+get '/new/post/:topic_id' => sub { 
 	my $self = shift;
-	my $post_title = $self->param('title');
-	my $post_author = $self->param('author');
+	my $topic_id = $self->param('topic_id');
+	my $topic_details = $self->db->selectall_arrayref( qq{
+			SELECT * FROM topics WHERE id='$topic_id'
+		}, { Slice => {} } );
+	$self->stash('topic' => $topic_details);
+	$self->render;
+} => 'newpost';
+
+post '/new/post/:tid' => sub {
+	my $self = shift;
+	my $topic_id = $self->param('tid');
+	my $post_title = $self->param('post_title');
+	my $post_author = $self->param('user_name');
+	my $post_content = $self->param('content');
+	my $date_published  = DateTime->now;
+	$self->db->do( qq{ 
+		INSERT INTO posts (title, author, content, topic_id, published) VALUES ('$post_title', '$post_author',  '$post_content', '$topic_id', '$date_published')
+	}, undef, 'DONE') or die $self->db->errstr;
+	$self->db->do( qq { UPDATE topics SET posts=posts+1 WHERE id=$topic_id } );
+	$self->redirect_to("/topic/$topic_id");
+};
+
+post '/new/topic' => sub {
+	my $self = shift;
+	my $topic_title = $self->param('title');
+	my $topic_author = $self->param('author');
 	my $date_published = DateTime->now;
 	$self->db-> do( qq{
-		INSERT INTO topics (title, author, published) VALUES ('$post_title', '$post_author', '$date_published')
+		INSERT INTO topics (title, author, published) VALUES ('$topic_title', '$topic_author', '$date_published')
 	}, undef, 'DONE') or die $self->db->errstr;
 	$self->redirect_to('/');
 };
+
+get '/topic/:id' => sub {
+	my $self = shift;
+	my $topic_id = $self->param('id');
+	my $topic_details = $self->db->selectall_arrayref( qq{
+			SELECT * FROM topics WHERE id='$topic_id'
+		}, { Slice => {} } );
+	my $posts = $self->db->selectall_arrayref( qq{
+		SELECT * FROM posts WHERE topic_id='$topic_id'
+	}, { Slice => {} } );
+	$self->stash('topic' => $topic_details);
+	$self->stash('posts' => $posts);
+	$self->render;
+} => 'viewtopic';
 
 app->start;
 
@@ -54,19 +105,39 @@ __DATA__
 @@ index.html.ep
 % title 'Main Page';
 % layout 'main';
-<table class="zebra-striped">
-	<thead><tr><th class="header">Discussion</th> <th class="yellow">Posts</th> <th class="blue">Author</th> 
-		<th class="green">Published</th></tr></thead>
-	<tbody>
-		% foreach my $topic (@$topics) {
-			<tr> <td><%= $topic->{title} %> <span class="label success">New!</span></td> <td><%= $topic->{posts} %></td> <td><%= $topic->{author} %></td> <td><%=$topic->{published} %></td>
-		% }
-	</tbody>
-</table>
+% if(@$topics) {
+	<table class="zebra-striped">
+		<thead><tr><th class="header">Discussion</th> <th class="yellow">Posts</th> <th class="blue">Author</th> 
+			<th class="green">Published</th></tr></thead>
+		<tbody>
+			% foreach my $topic (@$topics) {
+				<tr> <td><a href="/topic/<%= $topic->{id} %>" title="<%= $topic->{title} %>"><%= $topic->{title} %> </a> <span class="label success">New!</span></td> <td><%= $topic->{posts} %></td> <td><%= $topic->{author} %></td> <td><%=$topic->{published} %></td>
+			% }
+		</tbody>
+	</table>
+% } else {
+<p> There aren't any topics yet. Be the first to add one. </p>
+% }
 
 <div style="text-align: center">
-	<a href="/new" class="btn large success"> New Topic</a>
+	<a href="/new/topic" class="btn large success"> New Topic</a>
 </div>
+
+@@ viewtopic.html.ep
+% title @$topic[0]->{title};
+% layout 'main';
+	% foreach my $post (@$posts) {
+		<h3><%= $post->{title} %></h3>
+		<h4><%= $post->{author} %></h4>
+		<p>
+			<%= $post->{content} %>
+		</p>
+		<hr />
+	% }
+	<div style="text-align: center">
+		<a href="/new/topic" class="btn large success"> New Topic</a>
+		<a href="/new/post/<%= @$topic[0]->{id} %>" class="btn large primary"> New Post </a>
+	</div>
 
 @@ installed.html.ep
 % title 'Forum successfully installed';
@@ -76,6 +147,35 @@ __DATA__
 
 @@ newpost.html.ep
 % title 'New Post';
+% layout 'main';
+<h3>Add new post to <%= @$topic[0]->{title} %></h3>
+<form method="post" action="">
+	<input type="hidden" name="tid" value="<%= @$topic[0]->{id} %>">
+	<div class="clearfix">
+		<label>Your name:</label>
+		<div class="input">
+			<input type="text" name="user_name">
+		</div>
+	</div>
+	<div class="clearfix">
+		<label>Post Title:</label>
+		<div class="input">
+			<input type="text" name="post_title">
+		</div>
+	</div>
+	<div class="clearfix">
+		<label>Content:</label>
+		<div class="input">
+			<textarea name="content"></textarea>
+		</div>
+	</div>
+	<div class="actions">
+		<input type="submit" class="btn success" name="submit" value="Post">
+	</div>
+</form>
+
+@@ newtopic.html.ep
+% title 'New Topic';
 % layout 'main';
 <h3>Create New Post</h3>
 <form method="post" action="">
@@ -130,6 +230,8 @@ __DATA__
 		   -moz-box-shadow: 0 1px 2px rgba(0,0,0,.15);
 			box-shadow: 0 1px 2px rgba(0,0,0,.15);
 		  }
+		  
+		  .hero-unit { padding: 10px; }
 
 		  /* Page header tweaks */
 		  .page-header {
