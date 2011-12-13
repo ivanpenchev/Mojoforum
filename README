@@ -1,0 +1,18 @@
+Simple forum app powered by Mojolicious framework.
+
+Developed by Ivan Penchev for Google Code-in Contest.
+
+HOW-TO INSTALL:
+
+1. Install Perl - http://learn.perl.org/installing/
+2. Install Mojolicious Framework -http://mojolicio.us/
+3. Download the Mojoforum application and run it through cmd or terminal:
+/path/to/mojoforum.pl daemon
+4. Open your browser and load the app's home page which will be http://127.0.0.1:3000/.
+If the database file is missing the app should be automatically installed.
+
+You can always extend the application's functionality. 
+For more information please read the Mojolicious documentation:
+http://mojolicio.us/perldoc
+
+And don't forget to have fun! - "Mojolicious"
