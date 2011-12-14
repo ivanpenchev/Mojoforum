@@ -40,7 +40,7 @@ get '/install' => sub {
 				posts int default 0,
 				published datetime not null
 			)
-		}, undef, 'DONE') or die $self->db->errstr;
+		}) or die $self->db->errstr;
 		$self->db->do( q{
 			CREATE TABLE IF NOT EXISTS posts (
 				id integer primary key autoincrement not null,
@@ -50,7 +50,7 @@ get '/install' => sub {
 				topic_id integer not null,
 				published datetime not null
 			)
-		}, undef, 'DONE') or die $self->db->errstr;
+		}) or die $self->db->errstr;
 		$self->db->do( q{
 			CREATE TABLE IF NOT EXISTS users (
 				id integer primary key autoincrement not null,
@@ -91,7 +91,7 @@ post '/new/post/:tid' => sub {
 	my $date_published  = DateTime->now;
 	$self->db->do( qq{ 
 		INSERT INTO posts (title, author, content, topic_id, published) VALUES ('$post_title', '$post_author',  '$post_content', '$topic_id', '$date_published')
-	}, undef, 'DONE') or die $self->db->errstr;
+	}) or die $self->db->errstr;
 	$self->db->do( qq { UPDATE topics SET posts=posts+1 WHERE id=$topic_id } );
 	$self->redirect_to("/topic/$topic_id");
 };
@@ -103,7 +103,7 @@ post '/new/topic' => sub {
 	my $date_published = DateTime->now;
 	$self->db-> do( qq{
 		INSERT INTO topics (title, author, published) VALUES ('$topic_title', '$topic_author', '$date_published')
-	}, undef, 'DONE') or die $self->db->errstr;
+	}) or die $self->db->errstr;
 	$self->redirect_to('/');
 };
 
