@@ -8,11 +8,13 @@ Developed by Ivan Penchev for Google Code-in Contest.
 HOW-TO INSTALL:
 
 1. Install Perl - http://learn.perl.org/installing/
-2. Install Mojolicious Framework -http://mojolicio.us/
-3. Download the Mojoforum application and run it through cmd/terminal:
+2. Download the Mojoforum application and install it through cmd/terminal:
+perl Makefile.PL
+cpan --installdeps
+3. Start the application:
 /path/to/mojoforum.pl daemon
 4. Open your browser and load the app's home page which will be http://127.0.0.1:3000/.
-If the database file is missing the app should be automatically installed. 
+If the database file is missing or empty the app should be automatically installed.
 
 IMPORTANT: data directory should have write access permissions
 
