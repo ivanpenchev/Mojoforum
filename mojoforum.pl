@@ -6,7 +6,7 @@ use DBI;
 
 my $ver = 0.1;
 my $dbfile = 'data/mojoforum.sqlite';
-my $conn = DBI->connect("dbi:SQLite:dbname=$dbfile", '', '');
+my $conn = DBI->connect("dbi:SQLite:dbname=$dbfile", '', '',{sqlite_unicode=>1});
 
 helper db => sub {
 	return $conn;

@@ -10,7 +10,11 @@ HOW-TO INSTALL:
 1. Install Perl - http://learn.perl.org/installing/
 2. Download the Mojoforum application and install it through cmd/terminal:
 perl Makefile.PL
-cpan --installdeps
+cpanm --installdeps .
+
+Note that if  you don't have cpanm, you can install it like this:
+$ curl -L cpanmin.us | perl - --sudo App::cpanminus
+
 3. Start the application:
 /path/to/mojoforum.pl daemon
 4. Open your browser and load the app's home page which will be http://127.0.0.1:3000/.
