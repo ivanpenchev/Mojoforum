@@ -4,9 +4,9 @@ use Mojo::Util qw/sha1_sum/;
 
 use DBI;
 
-my $ver = 0.1;
-my $dbfile = 'data/mojoblog.sqlite';
-my $conn = DBI->connect("dbi:SQLite:dbname=$dbfile", '', '');
+my $ver = '0.1.1';
+my $dbfile = 'data/mojoforum.sqlite';
+my $conn = DBI->connect("dbi:SQLite:dbname=$dbfile", '', '',{sqlite_unicode=>1});
 
 helper db => sub {
 	return $conn;
@@ -40,7 +40,7 @@ get '/install' => sub {
 				posts int default 0,
 				published datetime not null
 			)
-		}, undef, 'DONE') or die $self->db->errstr;
+		}) or die $self->db->errstr;
 		$self->db->do( q{
 			CREATE TABLE IF NOT EXISTS posts (
 				id integer primary key autoincrement not null,
@@ -50,24 +50,27 @@ get '/install' => sub {
 				topic_id integer not null,
 				published datetime not null
 			)
-		}, undef, 'DONE') or die $self->db->errstr;
+		}) or die $self->db->errstr;
 		$self->db->do( q{
 			CREATE TABLE IF NOT EXISTS users (
 				id integer primary key autoincrement not null,
-				username varchar not null,
-				email varchar,
+				email varchar not null,
 				password varchar not null,
 				name varchar,
 				account_type int default 0 not null
 			)
 		});
-		my $username = 'admin';
-		my $password = sha1_sum 'admin';
-		$self->db->do( qq{
-			INSERT INTO users (username, password, account_type) VALUES ('$username', '$password', -1)
-		});
 		$self->render;
 	}
+} => 'install';
+
+post '/install/admin/create/' => sub {
+	my $self = shift;
+	my $email = $self->param('admin_email');
+	my $password = sha1_sum $self->param('admin_password');
+	$self->db->do( qq{
+		INSERT INTO users (email, password, account_type) VALUES ('$email', '$password', -1)
+	});
 } => 'installed';
 
 get '/new/topic' => 'newtopic';
@@ -91,7 +94,7 @@ post '/new/post/:tid' => sub {
 	my $date_published  = DateTime->now;
 	$self->db->do( qq{ 
 		INSERT INTO posts (title, author, content, topic_id, published) VALUES ('$post_title', '$post_author',  '$post_content', '$topic_id', '$date_published')
-	}, undef, 'DONE') or die $self->db->errstr;
+	}) or die $self->db->errstr;
 	$self->db->do( qq { UPDATE topics SET posts=posts+1 WHERE id=$topic_id } );
 	$self->redirect_to("/topic/$topic_id");
 };
@@ -103,7 +106,7 @@ post '/new/topic' => sub {
 	my $date_published = DateTime->now;
 	$self->db-> do( qq{
 		INSERT INTO topics (title, author, published) VALUES ('$topic_title', '$topic_author', '$date_published')
-	}, undef, 'DONE') or die $self->db->errstr;
+	}) or die $self->db->errstr;
 	$self->redirect_to('/');
 };
 
@@ -162,10 +165,34 @@ __DATA__
 		<a href="/new/post/<%= @$topic[0]->{id} %>" class="btn large primary"> New Post </a>
 	</div>
 
+@@ install.html.ep
+% title 'Forum database successfully installed :: Registration';
+% layout 'main';
+<h2> Your forum database was successfully installed </h2>
+<h5>Now please enter email and password for your admin account.</h5>
+<form method="post" action="/install/admin/create">
+	<div class="clearfix">
+		<label>Email:</label>
+		<div class="input">
+			<input type="text" name="admin_email">
+		</div>
+	</div>
+	<div class="clearfix">
+		<label>Password:</label>
+		<div class="input">
+			<input type="password" name="admin_password">
+		</div>
+	</div>
+	<div class="actions">
+		<input type="submit" class="btn primary" value="Create">
+	</div>
+</form>
+
 @@ installed.html.ep
 % title 'Forum successfully installed';
 % layout 'main';
-<h2> Your forum was successfully installed </h2>
+<h2>Congratulations! Your forum was succesfully installed.</h2>
+<p> Now you can invite all your friends and let the fun begin. </p>
 <a href="/">Go back to the home page</a>
 
 @@ newpost.html.ep
