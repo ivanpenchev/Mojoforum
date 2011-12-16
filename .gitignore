@@ -1,0 +1,4 @@
+
+/data
+*.sqlite
+/data/mojoforum.sqlite
