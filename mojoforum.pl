@@ -69,8 +69,8 @@ post '/install/admin/create/' => sub {
 	my $email = $self->param('admin_email');
 	my $password = sha1_sum $self->param('admin_password');
 	$self->db->do( qq{
-		INSERT INTO users (email, password, account_type) VALUES ('$email', '$password', -1)
-	});
+		INSERT INTO users (email, password, account_type) VALUES (?, ?, -1)
+	}, undef, $email, $password);
 } => 'installed';
 
 get '/new/topic' => 'newtopic';
@@ -79,8 +79,8 @@ get '/new/post/:topic_id' => sub {
 	my $self = shift;
 	my $topic_id = $self->param('topic_id');
 	my $topic_details = $self->db->selectall_arrayref( qq{
-			SELECT * FROM topics WHERE id='$topic_id'
-		}, { Slice => {} } );
+			SELECT * FROM topics WHERE id=?
+		}, { Slice => {} }, $topic_id );
 	$self->stash('topic' => $topic_details);
 	$self->render;
 } => 'newpost';
@@ -93,8 +93,8 @@ post '/new/post/:tid' => sub {
 	my $post_content = $self->param('content');
 	my $date_published  = DateTime->now;
 	$self->db->do( qq{ 
-		INSERT INTO posts (title, author, content, topic_id, published) VALUES ('$post_title', '$post_author',  '$post_content', '$topic_id', '$date_published')
-	}) or die $self->db->errstr;
+		INSERT INTO posts (title, author, content, topic_id, published) VALUES (?, ?,  ?, ?, ?)
+	}, undef, $post_title, $post_author, $post_content, $topic_id, $date_published) or die $self->db->errstr;
 	$self->db->do( qq { UPDATE topics SET posts=posts+1 WHERE id=$topic_id } );
 	$self->redirect_to("/topic/$topic_id");
 };
@@ -105,8 +105,8 @@ post '/new/topic' => sub {
 	my $topic_author = $self->param('author');
 	my $date_published = DateTime->now;
 	$self->db-> do( qq{
-		INSERT INTO topics (title, author, published) VALUES ('$topic_title', '$topic_author', '$date_published')
-	}) or die $self->db->errstr;
+		INSERT INTO topics (title, author, published) VALUES (?, ?, ?)
+	}, undef, $topic_title, $topic_author, $date_published) or die $self->db->errstr;
 	$self->redirect_to('/');
 };
 
@@ -114,14 +114,21 @@ get '/topic/:id' => sub {
 	my $self = shift;
 	my $topic_id = $self->param('id');
 	my $topic_details = $self->db->selectall_arrayref( qq{
-			SELECT * FROM topics WHERE id='$topic_id'
-		}, { Slice => {} } );
+			SELECT * FROM topics WHERE id=?
+		}, { Slice => {} }, $topic_id );
 	my $posts = $self->db->selectall_arrayref( qq{
-		SELECT * FROM posts WHERE topic_id='$topic_id'
-	}, { Slice => {} } );
-	$self->stash('topic' => $topic_details);
-	$self->stash('posts' => $posts);
-	$self->render;
+		SELECT * FROM posts WHERE topic_id=?
+	}, { Slice => {} }, $topic_id );
+	if ( not @$topic_details)
+	{
+		$self->redirect_to('/');
+	}
+	else
+	{
+		$self->stash('topic' => $topic_details);
+		$self->stash('posts' => $posts);
+		$self->render;
+	}
 } => 'viewtopic';
 
 app->start;
